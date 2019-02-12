@@ -78,6 +78,10 @@ func (c PhotonCommand) ReliableMessage() (msg ReliableMessage, err error) {
 	binary.Read(buf, binary.BigEndian, &msg.Signature)
 	binary.Read(buf, binary.BigEndian, &msg.Type)
 
+	if msg.Type > 128 {
+		return msg, fmt.Errorf("Encryption not supported")
+	}
+
 	if msg.Type == otherOperationResponse {
 		msg.Type = OperationResponse
 	}
