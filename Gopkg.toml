@@ -27,7 +27,7 @@
 
 [[constraint]]
   name = "github.com/google/gopacket"
-  version = "1.1.16"
+  revision = "8af772c0bcc826f671fd7c133917fec9686d720d"
 
 [[constraint]]
   name = "github.com/hashicorp/golang-lru"

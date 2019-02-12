@@ -4,8 +4,7 @@
 [[projects]]
   name = "github.com/google/gopacket"
   packages = ["."]
-  revision = "7f3fc6cbbb499248dca53da7fe3ed6c25a78d22f"
-  version = "v1.1.16"
+  revision = "8af772c0bcc826f671fd7c133917fec9686d720d"
 
 [[projects]]
   name = "github.com/hashicorp/golang-lru"
@@ -19,6 +18,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "5f82f07f0e3fbe3c48e2a42eb4fdf53b068d64171fd95ab1e9896b07740b16e3"
+  inputs-digest = "de115c3fc867bd9454e220eb75817f824588d9839858d948151eacf049a69b9e"
   solver-name = "gps-cdcl"
   solver-version = 1
