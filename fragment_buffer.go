@@ -1,6 +1,6 @@
 package photon_spectator
 
-import (	
+import (
 	lru "github.com/hashicorp/golang-lru"
 )
 
@@ -14,29 +14,31 @@ type FragmentBuffer struct {
 // buffer's contents.
 func (buf *FragmentBuffer) Offer(msg ReliableFragment) *PhotonCommand {
 	var entry fragmentBufferEntry
-	
+
 	if buf.cache.Contains(msg.SequenceNumber) {
 		obj, _ := buf.cache.Get(msg.SequenceNumber)
 		entry = obj.(fragmentBufferEntry)
 		entry.Fragments[int(msg.FragmentNumber)] = msg.Data
-		
+
 	} else {
+		entry.SequenceNumber = msg.SequenceNumber
 		entry.FragmentsNeeded = int(msg.FragmentCount)
 		entry.Fragments = make(map[int][]byte)
 		entry.Fragments[int(msg.FragmentNumber)] = msg.Data
 	}
-	
+
 	if entry.Finished() {
 		command := entry.Make()
 		buf.cache.Remove(msg.SequenceNumber)
 		return &command
 	} else {
-		buf.cache.Add(msg.SequenceNumber, entry)		
+		buf.cache.Add(msg.SequenceNumber, entry)
 		return nil
 	}
 }
 
 type fragmentBufferEntry struct {
+	SequenceNumber  int32
 	FragmentsNeeded int
 	Fragments       map[int][]byte
 }
@@ -52,7 +54,11 @@ func (buf fragmentBufferEntry) Make() PhotonCommand {
 		data = append(data, buf.Fragments[i]...)
 	}
 
-	return PhotonCommand{Type: SendReliableType, Data: data}
+	return PhotonCommand{
+		Type:                   SendReliableType,
+		Data:                   data,
+		ReliableSequenceNumber: buf.SequenceNumber,
+	}
 }
 
 // Makes a new instance of a FragmentBuffer
