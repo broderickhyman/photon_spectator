@@ -2,6 +2,7 @@ package photon_spectator
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -89,7 +90,7 @@ func TestDecodeReliableMessage(t *testing.T) {
 		msg.ParamaterCount = 1
 		msg.Data = r.input
 
-		actual, _ := DecodeReliableMessage(msg)
+		actual := DecodeReliableMessage(msg)
 
 		if !reflect.DeepEqual(r.output, actual) {
 			t.Errorf("Expected `%#v` but got `%#v`", r.output, actual)
@@ -102,12 +103,11 @@ func TestDecodeReliableMessage_DefaultError(t *testing.T) {
 	msg.ParamaterCount = 1
 	msg.Data = []byte{64, 64, 64}
 
-	_, err := DecodeReliableMessage(msg)
+	params := DecodeReliableMessage(msg)
 
-	if err == nil {
+	if !strings.HasPrefix(params["64"].(string), "ERROR") {
 		t.Fail()
 	}
-
 }
 
 func TestDecodeReliableMessage_BooleanError(t *testing.T) {
@@ -115,12 +115,11 @@ func TestDecodeReliableMessage_BooleanError(t *testing.T) {
 	msg.ParamaterCount = 1
 	msg.Data = []byte{64, BooleanType, 64}
 
-	_, err := DecodeReliableMessage(msg)
+	params := DecodeReliableMessage(msg)
 
-	if err == nil {
+	if !strings.HasPrefix(params["64"].(string), "ERROR") {
 		t.Fail()
 	}
-
 }
 
 func TestDecodeReliableMessage_SliceError(t *testing.T) {
@@ -128,12 +127,11 @@ func TestDecodeReliableMessage_SliceError(t *testing.T) {
 	msg.ParamaterCount = 1
 	msg.Data = []byte{0x00, SliceType, 0x00, 0x01, BooleanType, 0xff}
 
-	_, err := DecodeReliableMessage(msg)
+	params := DecodeReliableMessage(msg)
 
-	if err == nil {
+	if !strings.HasPrefix(params["0"].(string), "ERROR") {
 		t.Fail()
 	}
-
 }
 
 func TestDecodeReliableMessage_SliceDefaultError(t *testing.T) {
@@ -141,12 +139,11 @@ func TestDecodeReliableMessage_SliceDefaultError(t *testing.T) {
 	msg.ParamaterCount = 1
 	msg.Data = []byte{0x00, SliceType, 0x00, 0x01, 64, 0xff}
 
-	_, err := DecodeReliableMessage(msg)
+	params := DecodeReliableMessage(msg)
 
-	if err == nil {
+	if !strings.HasPrefix(params["0"].(string), "ERROR") {
 		t.Fail()
 	}
-
 }
 
 func TestDecodeReliableMessage_SliceNestedError(t *testing.T) {
@@ -154,10 +151,9 @@ func TestDecodeReliableMessage_SliceNestedError(t *testing.T) {
 	msg.ParamaterCount = 1
 	msg.Data = []byte{0x00, SliceType, 0x00, 0x01, SliceType, 0x00, 0x01, 64, 0x00}
 
-	_, err := DecodeReliableMessage(msg)
+	params := DecodeReliableMessage(msg)
 
-	if err == nil {
+	if !strings.HasPrefix(params["0"].(string), "ERROR") {
 		t.Fail()
 	}
-
 }

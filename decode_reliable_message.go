@@ -22,9 +22,9 @@ const (
 
 type ReliableMessageParamaters map[string]interface{}
 
-// Converts the paramaters of a reliable message into a hash situable for use in
+// Converts the parameters of a reliable message into a hash suitable for use in
 // hashmap.
-func DecodeReliableMessage(msg ReliableMessage) (ReliableMessageParamaters, error) {
+func DecodeReliableMessage(msg ReliableMessage) (ReliableMessageParamaters) {
 	buf := bytes.NewBuffer(msg.Data)
 	params := make(map[string]interface{})
 
@@ -56,28 +56,30 @@ func DecodeReliableMessage(msg ReliableMessage) (ReliableMessageParamaters, erro
 			result, err := decodeBooleanType(buf)
 
 			if err != nil {
-				return nil, err
+				params[paramsKey] = fmt.Sprintf("ERROR - Boolean - %v", err.Error())
+			} else {
+				params[paramsKey] = result
 			}
-
-			params[paramsKey] = result
 		case SliceInt8Type:
-			 result, err := decodeSliceInt8Type(buf)
-			 if err != nil{
-			 	return nil, fmt.Errorf("Slice Int8 Error: %s; Current Params: %+v", err.Error(), params)
-			 }
-			params[paramsKey] = result
-		case SliceType:
-			array, error := decodeSlice(buf)
-			if error != nil {
-				return nil, fmt.Errorf("Slice Error: %s; Current Params: %+v", error.Error(), params)
+			result, err := decodeSliceInt8Type(buf)
+			if err != nil {
+				params[paramsKey] = fmt.Sprintf("ERROR - Slice Int8 - %v", err.Error())
+			} else {
+				params[paramsKey] = result
 			}
-			params[paramsKey] = array
+		case SliceType:
+			array, err := decodeSlice(buf)
+			if err != nil {
+				params[paramsKey] = fmt.Sprintf("ERROR - Slice - %v", err.Error())
+			} else {
+				params[paramsKey] = array
+			}
 		default:
-			return nil, fmt.Errorf("Invalid type of %d; Current Params: %+v", paramType, params)
+			params[paramsKey] = fmt.Sprintf("ERROR - Invalid type of %v", paramType)
 		}
 	}
 
-	return params, nil
+	return params
 }
 
 func decodeSlice(buf *bytes.Buffer) (interface{}, error) {
@@ -149,7 +151,7 @@ func decodeSlice(buf *bytes.Buffer) (interface{}, error) {
 
 		for j := 0; j < int(length); j++ {
 			result, err := decodeSliceInt8Type(buf)
-			if err != nil{
+			if err != nil {
 				return nil, err
 			}
 			array[j] = result
@@ -230,7 +232,7 @@ func decodeSliceInt8Type(buf *bytes.Buffer) ([]int8, error) {
 	var length uint32
 
 	err := binary.Read(buf, binary.BigEndian, &length)
-	if err != nil{
+	if err != nil {
 		return nil, err
 	}
 
@@ -239,7 +241,7 @@ func decodeSliceInt8Type(buf *bytes.Buffer) ([]int8, error) {
 	for j := 0; j < int(length); j++ {
 		var temp int8
 		err := binary.Read(buf, binary.BigEndian, &temp)
-		if err != nil{
+		if err != nil {
 			return nil, err
 		}
 		array[j] = temp
