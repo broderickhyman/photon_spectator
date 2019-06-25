@@ -8,23 +8,31 @@ import (
 )
 
 const (
-	NilType       = 42
-	Int8Type      = 98
-	Float32Type   = 102
-	Int32Type     = 105
-	Int16Type     = 107
-	Int64Type     = 108
-	StringType    = 115
-	BooleanType   = 111
-	SliceInt8Type = 120
-	SliceType     = 121
+	NilType               = 42
+	DictionaryType        = 68
+	StringArrayType       = 97
+	Int8Type              = 98
+	DoubleType            = 100
+	EventDateType         = 101
+	Float32Type           = 102
+	Int32Type             = 105
+	Int16Type             = 107
+	Int64Type             = 108
+	IntArrayType          = 110
+	BooleanType           = 111
+	OperationResponseType = 112
+	OperationRequestType  = 113
+	StringType            = 115
+	SliceInt8Type         = 120
+	SliceType             = 121
+	ObjectArrayType       = 122
 )
 
 type ReliableMessageParamaters map[string]interface{}
 
 // Converts the parameters of a reliable message into a hash suitable for use in
 // hashmap.
-func DecodeReliableMessage(msg ReliableMessage) (ReliableMessageParamaters) {
+func DecodeReliableMessage(msg ReliableMessage) ReliableMessageParamaters {
 	buf := bytes.NewBuffer(msg.Data)
 	params := make(map[string]interface{})
 
@@ -36,50 +44,60 @@ func DecodeReliableMessage(msg ReliableMessage) (ReliableMessageParamaters) {
 		binary.Read(buf, binary.BigEndian, &paramType)
 
 		paramsKey := strconv.Itoa(int(paramID))
-
-		switch paramType {
-		case NilType, 0:
-			// Do nothing
-		case Int8Type:
-			params[paramsKey] = decodeInt8Type(buf)
-		case Float32Type:
-			params[paramsKey] = decodeFloat32Type(buf)
-		case Int32Type:
-			params[paramsKey] = decodeInt32Type(buf)
-		case Int16Type, 7:
-			params[paramsKey] = decodeInt16Type(buf)
-		case Int64Type:
-			params[paramsKey] = decodeInt64Type(buf)
-		case StringType:
-			params[paramsKey] = decodeStringType(buf)
-		case BooleanType:
-			result, err := decodeBooleanType(buf)
-
-			if err != nil {
-				params[paramsKey] = fmt.Sprintf("ERROR - Boolean - %v", err.Error())
-			} else {
-				params[paramsKey] = result
-			}
-		case SliceInt8Type:
-			result, err := decodeSliceInt8Type(buf)
-			if err != nil {
-				params[paramsKey] = fmt.Sprintf("ERROR - Slice Int8 - %v", err.Error())
-			} else {
-				params[paramsKey] = result
-			}
-		case SliceType:
-			array, err := decodeSlice(buf)
-			if err != nil {
-				params[paramsKey] = fmt.Sprintf("ERROR - Slice - %v", err.Error())
-			} else {
-				params[paramsKey] = array
-			}
-		default:
-			params[paramsKey] = fmt.Sprintf("ERROR - Invalid type of %v", paramType)
-		}
+		params[paramsKey] = decodeType(buf, paramType)
 	}
 
 	return params
+}
+
+func decodeType(buf *bytes.Buffer, paramType uint8) interface{} {
+	switch paramType {
+	case NilType, 0:
+		// Do nothing
+		return nil
+	case Int8Type:
+		return decodeInt8Type(buf)
+	case Float32Type:
+		return decodeFloat32Type(buf)
+	case Int32Type:
+		return decodeInt32Type(buf)
+	case Int16Type, 7:
+		return decodeInt16Type(buf)
+	case Int64Type:
+		return decodeInt64Type(buf)
+	case StringType:
+		return decodeStringType(buf)
+	case BooleanType:
+		result, err := decodeBooleanType(buf)
+
+		if err != nil {
+			return fmt.Sprintf("ERROR - Boolean - %v", err.Error())
+		} else {
+			return result
+		}
+	case SliceInt8Type:
+		result, err := decodeSliceInt8Type(buf)
+		if err != nil {
+			return fmt.Sprintf("ERROR - Slice Int8 - %v", err.Error())
+		} else {
+			return result
+		}
+	case SliceType:
+		array, err := decodeSlice(buf)
+		if err != nil {
+			return fmt.Sprintf("ERROR - Slice - %v", err.Error())
+		} else {
+			return array
+		}
+	case DictionaryType:
+		dict, err := decodeDictionaryType(buf)
+		if err != nil {
+			return fmt.Sprintf("ERROR - Dictionary - %v", err.Error())
+		} else {
+			return dict
+		}
+	}
+	return fmt.Sprintf("ERROR - Invalid type of %v", paramType)
 }
 
 func decodeSlice(buf *bytes.Buffer) (interface{}, error) {
@@ -248,4 +266,34 @@ func decodeSliceInt8Type(buf *bytes.Buffer) ([]int8, error) {
 	}
 
 	return array, nil
+}
+
+func decodeDictionaryType(buf *bytes.Buffer) (map[interface{}]interface{}, error) {
+	var keyTypeCode uint8
+	var valueTypeCode uint8
+	var dictionarySize uint16
+
+	err := binary.Read(buf, binary.BigEndian, &keyTypeCode)
+	if err != nil {
+		return nil, err
+	}
+	err = binary.Read(buf, binary.BigEndian, &valueTypeCode)
+	if err != nil {
+		return nil, err
+	}
+	err = binary.Read(buf, binary.BigEndian, &dictionarySize)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: The map[interface{}]interface{} may not actually work in real use-cases
+	dictionary := make(map[interface{}]interface{})
+	for i := uint16(0); i < dictionarySize; i++ {
+		// TODO: We may need to read another byte for either key or value if they equal 0 or 42 in order to determine actual type
+		key := decodeType(buf, keyTypeCode)
+		value := decodeType(buf, valueTypeCode)
+		dictionary[key] = value
+	}
+
+	return dictionary, nil
 }
