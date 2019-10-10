@@ -132,7 +132,7 @@ func TestLoginPhotonLayer(t *testing.T) {
 	}
 
 	params := DecodeReliableMessage(msg)
-	opCode, ok := params["253"].(int16)
+	opCode, ok := params[253].(int16)
 	if params == nil || !ok || opCode != 2 {
 		t.Error(err)
 	}

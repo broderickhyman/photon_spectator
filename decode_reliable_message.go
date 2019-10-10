@@ -4,37 +4,38 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"strconv"
 )
 
 const (
 	NilType               = 42
 	DictionaryType        = 68
-	StringArrayType       = 97
+	StringSliceType       = 97
 	Int8Type              = 98
+	Custom                = 99
 	DoubleType            = 100
 	EventDateType         = 101
 	Float32Type           = 102
+	Hashtable             = 104
 	Int32Type             = 105
 	Int16Type             = 107
 	Int64Type             = 108
-	IntArrayType          = 110
+	Int32SliceType        = 110
 	BooleanType           = 111
 	OperationResponseType = 112
 	OperationRequestType  = 113
 	StringType            = 115
-	SliceInt8Type         = 120
+	Int8SliceType         = 120
 	SliceType             = 121
-	ObjectArrayType       = 122
+	ObjectSliceType       = 122
 )
 
-type ReliableMessageParamaters map[string]interface{}
+type ReliableMessageParamaters map[uint8]interface{}
 
 // Converts the parameters of a reliable message into a hash suitable for use in
 // hashmap.
 func DecodeReliableMessage(msg ReliableMessage) ReliableMessageParamaters {
 	buf := bytes.NewBuffer(msg.Data)
-	params := make(map[string]interface{})
+	params := make(map[uint8]interface{})
 
 	for i := 0; i < int(msg.ParamaterCount); i++ {
 		var paramID uint8
@@ -43,7 +44,7 @@ func DecodeReliableMessage(msg ReliableMessage) ReliableMessageParamaters {
 		binary.Read(buf, binary.BigEndian, &paramID)
 		binary.Read(buf, binary.BigEndian, &paramType)
 
-		paramsKey := strconv.Itoa(int(paramID))
+		paramsKey := paramID
 		params[paramsKey] = decodeType(buf, paramType)
 	}
 
@@ -75,7 +76,7 @@ func decodeType(buf *bytes.Buffer, paramType uint8) interface{} {
 		} else {
 			return result
 		}
-	case SliceInt8Type:
+	case Int8SliceType:
 		result, err := decodeSliceInt8Type(buf)
 		if err != nil {
 			return fmt.Sprintf("ERROR - Slice Int8 - %v", err.Error())
@@ -164,7 +165,7 @@ func decodeSlice(buf *bytes.Buffer) (interface{}, error) {
 		}
 
 		return array, nil
-	case SliceInt8Type:
+	case Int8SliceType:
 		array := make([][]int8, length)
 
 		for j := 0; j < int(length); j++ {

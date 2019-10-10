@@ -65,7 +65,6 @@ type ReliableFragment struct {
 	Data []byte
 }
 
-
 // Returns a structure containing the fields of a reliable message.
 // Errors if the type is not SendReliableType.
 func (c PhotonCommand) ReliableMessage() (msg ReliableMessage, err error) {
